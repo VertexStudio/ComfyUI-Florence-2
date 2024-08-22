@@ -29,15 +29,10 @@ def fixed_get_imports(filename: str | os.PathLike) -> list[str]:
     imports.remove("flash_attn")
     return imports
 
-def load_model(version, repo, device):
+def load_model(identifier, device):
     comfy_model_dir = os.path.join(folder_paths.models_dir, "LLM")
     if not os.path.exists(comfy_model_dir):
         os.mkdir(comfy_model_dir)
-    
-    if repo == "" or not repo:
-        identifier = version
-    else:
-        identifier = repo + "/" + version
     
     with patch("transformers.dynamic_module_utils.get_imports", fixed_get_imports):
         model = AutoModelForCausalLM.from_pretrained(identifier, cache_dir=comfy_model_dir, trust_remote_code=True)
@@ -137,8 +132,7 @@ class LoadFlorence2Model:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "version": ("STRING", {}),
-                "repo": ("STRING", {}),
+                "identifier": ("STRING", {}),
             },
         }
     
@@ -146,10 +140,10 @@ class LoadFlorence2Model:
     FUNCTION = "load"
     CATEGORY = "Florence2"
     
-    def load(self, version, repo):
-        if self.version != version:
-            self.model, self.processor = load_model(version, repo, self.device)
-            self.version = version
+    def load(self, identifier):
+        if self.version != identifier:
+            self.model, self.processor = load_model(identifier, self.device)
+            self.version = identifier
 
         return ({'model': self.model, 'processor': self.processor, 'version': self.version, 'device': self.device}, )
 
