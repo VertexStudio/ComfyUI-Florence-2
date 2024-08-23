@@ -29,14 +29,24 @@ def fixed_get_imports(filename: str | os.PathLike) -> list[str]:
     imports.remove("flash_attn")
     return imports
 
-def load_model(identifier, device):
+def load_model(identifier, token, device):
     comfy_model_dir = os.path.join(folder_paths.models_dir, "LLM")
     if not os.path.exists(comfy_model_dir):
         os.mkdir(comfy_model_dir)
     
     with patch("transformers.dynamic_module_utils.get_imports", fixed_get_imports):
-        model = AutoModelForCausalLM.from_pretrained(identifier, cache_dir=comfy_model_dir, trust_remote_code=True)
-        processor = AutoProcessor.from_pretrained(identifier, cache_dir=comfy_model_dir, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(
+            identifier, 
+            cache_dir=comfy_model_dir, 
+            trust_remote_code=True, 
+            token=token
+        )
+        processor = AutoProcessor.from_pretrained(
+            identifier, 
+            cache_dir=comfy_model_dir, 
+            trust_remote_code=True, 
+            token=token
+        )
     
     model = model.to(device)
     return (model, processor)
@@ -133,6 +143,7 @@ class LoadFlorence2Model:
         return {
             "required": {
                 "identifier": ("STRING", {}),
+                "token": ("STRING", {}),
             },
         }
     
@@ -140,9 +151,9 @@ class LoadFlorence2Model:
     FUNCTION = "load"
     CATEGORY = "Florence2"
     
-    def load(self, identifier):
+    def load(self, identifier, token):
         if self.version != identifier:
-            self.model, self.processor = load_model(identifier, self.device)
+            self.model, self.processor = load_model(identifier, token, self.device)
             self.version = identifier
 
         return ({'model': self.model, 'processor': self.processor, 'version': self.version, 'device': self.device}, )
@@ -319,7 +330,7 @@ class Florence2Postprocess:
             if index < len(F_BBOXES["labels"]):
                 bbox = F_BBOXES["bboxes"][index]
                 label = F_BBOXES["labels"][index]
-                label = label.removeprefix("</s>")
+                label = label.removeprefix(" { ")
 
                 if len(bbox) == 4:
                     x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
@@ -384,7 +395,7 @@ class Florence2PostprocessAll:
             for idx in range(len(F_BBOXES["bboxes"])):
                 bbox = F_BBOXES["bboxes"][idx]
                 
-                new_label = F_BBOXES["labels"][idx].removeprefix("</s>")
+                new_label = F_BBOXES["labels"][idx].removeprefix(" { ")
                 if new_label not in label:
                     if idx > 0:
                         label = label + ", "
