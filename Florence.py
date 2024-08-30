@@ -29,7 +29,7 @@ def fixed_get_imports(filename: str | os.PathLike) -> list[str]:
     imports.remove("flash_attn")
     return imports
 
-def load_model(identifier, token, device):
+def load_model(identifier, token, device, revision):
     comfy_model_dir = os.path.join(folder_paths.models_dir, "LLM")
     if not os.path.exists(comfy_model_dir):
         os.mkdir(comfy_model_dir)
@@ -39,13 +39,15 @@ def load_model(identifier, token, device):
             identifier, 
             cache_dir=comfy_model_dir, 
             trust_remote_code=True, 
-            token=token
+            token=token,
+            revision=revision
         )
         processor = AutoProcessor.from_pretrained(
             identifier, 
             cache_dir=comfy_model_dir, 
             trust_remote_code=True, 
-            token=token
+            token=token,
+            revision=revision
         )
     
     model = model.to(device)
@@ -144,6 +146,7 @@ class LoadFlorence2Model:
             "required": {
                 "identifier": ("STRING", {}),
                 "token": ("STRING", {}),
+                "revision": ("STRING", {}),
             },
         }
     
@@ -151,9 +154,9 @@ class LoadFlorence2Model:
     FUNCTION = "load"
     CATEGORY = "Florence2"
     
-    def load(self, identifier, token):
+    def load(self, identifier, token, revision):
         if self.version != identifier:
-            self.model, self.processor = load_model(identifier, token, self.device)
+            self.model, self.processor = load_model(identifier, token, self.device, revision)
             self.version = identifier
 
         return ({'model': self.model, 'processor': self.processor, 'version': self.version, 'device': self.device}, )
