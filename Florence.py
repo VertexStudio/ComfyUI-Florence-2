@@ -34,21 +34,17 @@ def load_model(identifier, token, device, revision):
     if not os.path.exists(comfy_model_dir):
         os.mkdir(comfy_model_dir)
     
+    model_kwargs = {
+        "cache_dir": comfy_model_dir,
+        "trust_remote_code": True,
+        "token": token
+    }
+    if revision and revision.strip():
+        model_kwargs["revision"] = revision
+    
     with patch("transformers.dynamic_module_utils.get_imports", fixed_get_imports):
-        model = AutoModelForCausalLM.from_pretrained(
-            identifier, 
-            cache_dir=comfy_model_dir, 
-            trust_remote_code=True, 
-            token=token,
-            revision=revision
-        )
-        processor = AutoProcessor.from_pretrained(
-            identifier, 
-            cache_dir=comfy_model_dir, 
-            trust_remote_code=True, 
-            token=token,
-            revision=revision
-        )
+        model = AutoModelForCausalLM.from_pretrained(identifier, **model_kwargs)
+        processor = AutoProcessor.from_pretrained(identifier, **model_kwargs)
     
     model = model.to(device)
     return (model, processor)
